@@ -80,7 +80,6 @@ RUN bash /tmp/install-miniforge.bash && \
 
 ENV PATH=${CONDA_DIR}/bin:$PATH
 
-
 # Copy environment.yml as NB_USER so we can remove it later
 COPY --chown=${NB_USER}:${NB_USER} environment.yml /tmp/environment.yml
 
@@ -107,30 +106,6 @@ COPY --chown=${NB_USER}:${NB_USER} --from=srv-conda /srv/conda /srv/conda
 
 USER ${NB_USER}
 ENV PATH=${CONDA_DIR}/envs/notebook/bin:${CONDA_DIR}/bin:${DEFAULT_PATH}
-
-# installing chromium browser to enable webpdf conversion using nbconvert
-ENV PLAYWRIGHT_BROWSERS_PATH=${CONDA_DIR}
-RUN playwright install chromium
-
-# https://github.com/berkeley-dsep-infra/datahub/issues/5827
-RUN git config --system pull.rebase false
-
-# overrides.json is a file that jupyterlab reads to determine some settings
-# 1) remove the 'create shareable link' option from the filebrowser context menu
-RUN mkdir -p ${CONDA_DIR}/share/jupyter/lab/settings
-COPY overrides.json ${CONDA_DIR}/share/jupyter/lab/settings
-
-# code-server's conda package assets are installed in share/code-server.
-ENV VSCODE_EXTENSIONS=${CONDA_DIR}/share/code-server/extensions
-RUN mkdir -p ${VSCODE_EXTENSIONS}
-
-# This is not reproducible, and it can be difficult to version these.
-RUN for x in \
-  ms-toolsai.jupyter \
-  ms-python.python \
-  quarto.quarto \
-  ms-vscode.live-server \
-  ; do code-server --extensions-dir ${VSCODE_EXTENSIONS} --install-extension $x; done
 
 # Cleanup temp files
 USER root
