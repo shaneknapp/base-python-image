@@ -103,6 +103,7 @@ FROM base AS final
 
 USER root
 COPY --chown=${NB_USER}:${NB_USER} --from=srv-conda /srv/conda /srv/conda
+COPY --chown=${NB_USER}:${NB_USER} activate-conda.sh /etc/profile.d/activate-conda.sh
 
 USER ${NB_USER}
 ENV PATH=${CONDA_DIR}/envs/notebook/bin:${CONDA_DIR}/bin:${DEFAULT_PATH}
