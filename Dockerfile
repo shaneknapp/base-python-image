@@ -106,6 +106,9 @@ COPY --chown=${NB_USER}:${NB_USER} --from=srv-conda /srv/conda /srv/conda
 
 USER ${NB_USER}
 ENV PATH=${CONDA_DIR}/envs/notebook/bin:${CONDA_DIR}/bin:${DEFAULT_PATH}
+COPY --chown=${NB_USER}:${NB_USER} postBuild /tmp/postBuild
+COPY --chown=${NB_USER}:${NB_USER} overrides.json /tmp/overrides.json
+RUN chmod +x /tmp/postBuild && /tmp/postBuild && rm -rf /tmp/postBuild
 
 # Cleanup temp files
 USER root

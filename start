@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# requied when exporting pdfs
+# See https://jira-secure.berkeley.edu/browse/DH-305
+export PLAYWRIGHT_BROWSERS_PATH=${CONDA_DIR}
+
+# Set vscode proxy URI template
+export VSCODE_PROXY_URI="../proxy/absolute/{{port}}/"
+
+exec "$@"
