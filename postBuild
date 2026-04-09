@@ -11,7 +11,7 @@ git config --system pull.rebase false
 # overrides.json is a file that jupyterlab reads to determine some settings
 # 1) remove the 'create shareable link' option from the filebrowser context menu
 mkdir -p ${CONDA_DIR}/share/jupyter/lab/settings
-cp -p overrides.json ${CONDA_DIR}/share/jupyter/lab/settings
+cp -p /tmp/overrides.json ${CONDA_DIR}/share/jupyter/lab/settings
 
 # code-server's conda package assets are installed in share/code-server.
 export VSCODE_EXTENSIONS=${CONDA_DIR}/envs/notebook/share/code-server/extensions
