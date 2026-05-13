@@ -1,0 +1,109 @@
+name: Update Downstream Dockerfiles
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        description: "The new base image tag to propagate to downstream repos"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  update-downstream:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate GitHub App token
+        uses: actions/create-github-app-token@v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY_SECRET }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Discover and update downstream repos
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BASE_IMAGE: us-central1-docker.pkg.dev/cal-icor-hubs/user-images/base-python-image
+          IMAGE_TAG: ${{ inputs.image-tag }}
+          ORG: ${{ github.repository_owner }}
+          BOT_NAME: ${{ vars.IMAGE_BUILDER_BOT_NAME }}
+          BOT_EMAIL: ${{ vars.IMAGE_BUILDER_BOT_EMAIL }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          echo "Searching for repos in ${ORG} using ${BASE_IMAGE}..."
+
+          REPOS=$(gh repo list "$ORG" \
+            --limit 500 \
+            --json nameWithOwner \
+            --jq '.[].nameWithOwner')
+
+          for repo in $REPOS; do
+            # Skip this repo
+            if [[ "$repo" == "$THIS_REPO" ]]; then
+              continue
+            fi
+
+            # Skip if no Dockerfile
+            if ! gh api "repos/$repo/contents/Dockerfile" >/dev/null 2>&1; then
+              continue
+            fi
+
+            # Fetch and decode Dockerfile content
+            CONTENT=$(gh api "repos/$repo/contents/Dockerfile" --jq '.content' | base64 -d)
+
+            if ! echo "$CONTENT" | grep -q "$BASE_IMAGE"; then
+              continue
+            fi
+
+            echo "Found downstream repo: $repo — updating to ${IMAGE_TAG}"
+
+            DEFAULT_BRANCH=$(gh api "repos/$repo" --jq '.default_branch')
+            REPO_NAME=$(basename "$repo")
+            BRANCH="update-base-image-tag-${IMAGE_TAG}"
+
+            git clone "https://x-access-token:${GH_TOKEN}@github.com/${repo}.git" "$REPO_NAME"
+            cd "$REPO_NAME"
+
+            git config user.email "$BOT_EMAIL"
+            git config user.name "$BOT_NAME"
+
+            sed -i "s|${BASE_IMAGE}:[^[:space:]]*|${BASE_IMAGE}:${IMAGE_TAG}|g" Dockerfile
+
+            if git diff --quiet; then
+              echo "  Already up to date, skipping"
+              cd ..
+              rm -rf "$REPO_NAME"
+              continue
+            fi
+
+            # Skip if a PR for this tag already exists
+            EXISTING=$(gh pr list --repo "$repo" --head "$BRANCH" --json number --jq 'length')
+            if [[ "$EXISTING" -gt 0 ]]; then
+              echo "  PR already exists for branch ${BRANCH}, skipping"
+              cd ..
+              rm -rf "$REPO_NAME"
+              continue
+            fi
+
+            git checkout -b "$BRANCH"
+            git add Dockerfile
+            git commit -m "update base image tag to ${IMAGE_TAG}"
+            git push origin "$BRANCH"
+
+            gh pr create \
+              --repo "$repo" \
+              --title "update base image tag to ${IMAGE_TAG}" \
+              --body "Automated update: bump \`${BASE_IMAGE}\` to \`${IMAGE_TAG}\`." \
+              --head "$BRANCH" \
+              --base "$DEFAULT_BRANCH"
+
+            echo "  PR opened in $repo"
+            cd ..
+            rm -rf "$REPO_NAME"
+          done
