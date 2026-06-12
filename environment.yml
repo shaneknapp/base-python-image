@@ -57,4 +57,4 @@ dependencies:
     - otter-grader==6.1.3
 
     # nbgitpuller pre-release
-    - nbgitpuller==1.3.0b1
+    - nbgitpuller==1.3.0
