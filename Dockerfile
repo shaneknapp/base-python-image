@@ -116,6 +116,10 @@ USER root
 RUN rm -rf /tmp/*
 RUN rm -rf /root/.cache
 
+ENV REPO_DIR=/srv/repo
+RUN install -d -o ${NB_USER} -g ${NB_USER} ${REPO_DIR}
+COPY --chown=${NB_USER}:${NB_USER} . ${REPO_DIR}
+
 USER ${NB_USER}
 WORKDIR /home/${NB_USER}
 
