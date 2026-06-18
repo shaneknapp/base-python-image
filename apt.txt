@@ -1,4 +1,7 @@
 # general desired cli tools
+net-tools
+htop
+tree
 curl
 less
 rsync
@@ -23,11 +26,6 @@ file
 # https://github.com/cal-icor/cal-icor-hubs/issues/592
 parallel
 
-# for ops debugging
-net-tools
-htop
-tree
-
 # for jupyter-tree-download, #3979
 zip
 
@@ -40,11 +38,6 @@ texlive-plain-generic
 lmodern
 libgbm1
 
-# for LS88-5 and modules basemap
-libspatialindex-dev
-
-# For L&S22
-graphviz
 
 # for notebook-as-pdf
 libx11-xcb1
